@@ -1,6 +1,5 @@
 const pup = require("puppeteer");
 
-
 /**
  *
  * @param {Page} page
@@ -20,15 +19,35 @@ async function login(page, username_, password_) {
 
 	const username = await page.waitForSelector("#steamAccountName");
 	await username.focus();
-	await username.type(username_);
+	await username.type(username_, { delay: Math.random() * 100 });
 
 	const password = await page.waitForSelector("#steamPassword");
 	await password.focus();
-	await password.type(password_);
+	await password.type(password_, { delay: Math.random() * 100 });
 
 	(await page.waitForSelector("#imageLogin")).click();
+}
 
+/**
+ *
+ * @param {Page} page
+ */
+async function steamGuardNeeded(page) {
+	return !page.url()
+		.includes("https://csgoempire.com");
+}
+
+/**
+ *
+ * @param {Page} page
+ * @param code
+ */
+async function solveSteamGuard(page, code) {
 	await page.waitForNavigation();
+	const codeInput = await page.$(".authcode_entry_input");
+	const authButton = await page.waitForSelector(".auth_button");
+	await codeInput.type(code, { delay: Math.random() * 100 });
+	await authButton.click();
 }
 
 
@@ -37,7 +56,7 @@ async function login(page, username_, password_) {
  * @param {Page} page
  */
 async function verifyLogin(page) {
-	const avatar = await page.waitForSelector(".avatar");
+	const avatar = await page.$(".avatar");
 	return avatar != null;
 }
 
@@ -66,5 +85,31 @@ async function getPreviousRolls(page) {
 	const rolls = rollDivs.map((/** Element */rollDiv) => rollDiv.firstChild);
 }
 
+/**
+ *
+ * @param {Page} page
+ *
+ */
+async function closeWelcomeBackModal(page) {
+	const closeButton = await page.waitForSelector(".v--modal-close-button");
+	await closeButton.click();
+}
 
+/**
+ *
+ * @param {Page} page
+ *
+ */
+async function closeChat(page) {
+	const closeButton = await page.waitForSelector(".w-40.h-full.flex.items-center.justify-center.link");
+	await closeButton.click();
+}
 
+module.exports = {
+	gotoEmpire,
+	login,
+	verifyLogin,
+	steamGuardNeeded,
+	closeWelcomeBackModal,
+	closeChat
+};
