@@ -1,5 +1,6 @@
 const pup = require("puppeteer");
 const fs = require("fs");
+const parseCsv = require("csv-parse/lib/sync");
 
 const elib = require("./lib");
 
@@ -12,6 +13,9 @@ var betsHistory = [];
 
 /** {Page} */
 var globalPage;
+
+const rulesFile = fs.readFileSync("./algo.csv");
+const rules = parseCsv(rulesFile);
 
 function prepareUserDataDir() {
 	if (!fs.existsSync(userDataDir)) {
@@ -82,6 +86,8 @@ function onWsMsg({ requestId, timestamp, response }) {
 		const winner = winnerHash === 0 ? "d" : winnerHash > 7 ? "ct" : "t";
 		rollsHistory.push({ winner: winner, round: data[1].round });
 
+		/* TODO: betting logic here */
+
 		bet(globalPage, 0.3, "d");
 	}
 }
@@ -116,3 +122,7 @@ async function bet(page, amount, winner) {
 }
 
 main();
+
+module.exports = {
+	getStrokesSinceDice
+};

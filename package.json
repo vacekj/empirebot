@@ -19,9 +19,16 @@
   "dependencies": {
     "@types/puppeteer": "^1.20.2",
     "@types/sequelize": "^4.28.7",
+    "csv-parse": "^4.8.2",
     "puppeteer": "^2.0.0",
     "sequelize": "^5.21.2",
     "sequelize-cli": "^5.5.1",
-    "sqlite3": "^4.1.0"
+    "sqlite3": "^4.1.0",
+    "xlsx": "^0.15.2"
+  },
+  "devDependencies": {
+    "@types/csv-parse": "^1.2.2",
+    "@types/jest": "^24.0.23",
+    "jest": "^24.9.0"
   }
 }

@@ -130,11 +130,21 @@ async function closeChat(page) {
 	});
 }
 
+/**
+ *
+ * @param {Array} rollsHistory
+ * @returns number
+ */
+function getStrokesSinceDice(rollsHistory) {
+	return rollsHistory.length - rollsHistory.lastIndexOf("d") - 1;
+}
+
 module.exports = {
 	gotoEmpire,
 	login,
 	verifyLogin,
 	steamGuardNeeded,
 	closeWelcomeBackModal,
-	closeChat
+	closeChat,
+	getStrokesSinceDice
 };
