@@ -107,10 +107,13 @@ async function getPreviousRolls(page) {
  *
  */
 async function closeWelcomeBackModal(page) {
-	const closeButton = await page.$(".v--modal-close-button");
-	if (closeButton) {
-		await closeButton.click();
-	}
+	await page.evaluate(() => {
+		const close = document.querySelector('.v--modal-close-button');
+		if (close != null) {
+			close.click();
+		}
+	});
+
 }
 
 /**
@@ -119,10 +122,12 @@ async function closeWelcomeBackModal(page) {
  *
  */
 async function closeChat(page) {
-	const closeButton = await page.$(".w-40.h-full.flex.items-center.justify-center.link");
-	if (closeButton) {
-		await closeButton.click();
-	}
+	await page.evaluate(() => {
+		const close = document.querySelector('.w-40.h-full.flex.items-center.justify-center.link');
+		if (close != null) {
+			close.click();
+		}
+	});
 }
 
 module.exports = {
@@ -131,6 +136,5 @@ module.exports = {
 	verifyLogin,
 	steamGuardNeeded,
 	closeWelcomeBackModal,
-	closeChat,
-	getPreviousRolls
+	closeChat
 };

@@ -10,6 +10,9 @@ const userDataDir = "./userData";
 var rollsHistory = [];
 var betsHistory = [];
 
+/** {Page} */
+var globalPage;
+
 function prepareUserDataDir() {
 	if (!fs.existsSync(userDataDir)) {
 		fs.mkdirSync(userDataDir);
@@ -43,15 +46,13 @@ async function main() {
 			await elib.verifyLogin(page);
 		}
 	}
-	await page.waitFor(2000);
+	await page.waitFor(4000);
 	await elib.closeWelcomeBackModal(page);
 	await elib.closeChat(page);
 
-	// while (true) {
-	// 	await loop(page);
-	// }
-
 	const client = page._client;
+
+	globalPage = page;
 
 	client.on('Network.webSocketFrameReceived', onWsMsg);
 }
@@ -80,28 +81,38 @@ function onWsMsg({ requestId, timestamp, response }) {
 		const winnerHash = data[1].winner;
 		const winner = winnerHash === 0 ? "d" : winnerHash > 7 ? "ct" : "t";
 		rollsHistory.push({ winner: winner, round: data[1].round });
+
+		bet(globalPage, 0.3, "d");
 	}
 }
 
-async function loop(page) {
-	if (betsHistory.length > 0) {
-		/* Assess our previous bet here */
-	}
+/**
+ *
+ * @param {Page} page
+ *
+ * @param {number} amount
+ * @param {string} winner
+ */
+async function bet(page, amount, winner) {
+	const input = await page.waitForSelector('input[placeholder="Enter bet amount..."]');
+	await page.evaluate(() => {
+		const btns = Array.from(document.querySelectorAll("button"));
+		const clear = btns.find((btn) => {
+			return btn.innerText.trim() === "Clear";
+		});
+		clear.click();
+	});
+	await input.click({ clickCount: 3 });
+	await input.type(amount.toString(), { delay: Math.random() * 100 });
+	(await page.$(".coinstack")).click();
 
-	/* Wait until we are rolling */
-	await page.waitForSelector("tracking-wide > div:nth-child(2)");
-	const rolls = await elib.getPreviousRolls(page);
-
-	/* If this is our first loop, get last 10 rolls */
-	if (rollsHistory.length === 0) {
-		rollsHistory.push(rolls);
-	} else {
-		rollsHistory.push(rolls[rolls.length - 1]);
-	}
-
-	/* TODO: Determine our bet based on previous bets */
-	/* Place bet */
-
+	await page.waitFor(12 * 1000);
+	await page.evaluate(() => {
+		Array.from(document.querySelectorAll("span"))
+			.find((span) => span.innerText.trim()
+				.toLowerCase() === "win 14")
+			.click();
+	});
 }
 
 main();
