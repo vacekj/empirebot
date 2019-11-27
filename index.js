@@ -53,6 +53,8 @@ function prepareUserDataDir() {
 	}
 }
 
+const { username, password } = require("./env.json");
+
 async function main() {
 	console.log(`
 ███████╗███╗   ███╗██████╗ ██╗██████╗ ███████╗██████╗  ██████╗ ████████╗
@@ -76,7 +78,7 @@ async function main() {
 	await elib.gotoEmpire(page);
 	const loggedIn = await elib.verifyLogin(page);
 	if (!loggedIn) {
-		await elib.login(page, "vacekjo", "Z(Bx9ih)zMg*,*a");
+		await elib.login(page, username, password);
 		await page.waitForNavigation();
 		const steamGuardNeeded = await elib.steamGuardNeeded(page);
 		if (steamGuardNeeded) {
