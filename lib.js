@@ -84,8 +84,7 @@ async function getPreviousRolls(page) {
 	await page.waitForSelector(".previous-rolls-item");
 	const rollDivs = await page.$$(".previous-rolls-item > div");
 	// noinspection JSValidateTypes
-	/** @type HTMLDivElement[] */
-	const rolls = await Promise.all(
+	return await Promise.all(
 		rollDivs.map(async (rollDiv) => {
 			const className = (await rollDiv.getProperty("className")).toString();
 			if (className.includes("coin-t")) {
@@ -97,8 +96,6 @@ async function getPreviousRolls(page) {
 			}
 		})
 	);
-
-	return rolls;
 }
 
 /**
@@ -136,7 +133,18 @@ async function closeChat(page) {
  * @returns number
  */
 function getStrokesSinceDice(rollsHistory) {
-	return rollsHistory.length - rollsHistory.lastIndexOf("d") - 1;
+	const lastDice = rollsHistory.find((roll) => roll.winner === "d");
+	const lastDiceRound = lastDice ? lastDice.round : rollsHistory[rollsHistory.length - 1].round;
+	return rollsHistory[rollsHistory.length - 1].round - lastDiceRound;
+}
+
+/**
+ *
+ * @param {Page} page
+ *
+ */
+function isInMaintenance(page) {
+	const divs = page.$$("div");
 }
 
 module.exports = {
@@ -146,5 +154,6 @@ module.exports = {
 	steamGuardNeeded,
 	closeWelcomeBackModal,
 	closeChat,
-	getStrokesSinceDice
+	getStrokesSinceDice,
+	isInMaintenance
 };

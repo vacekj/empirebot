@@ -1,6 +1,7 @@
 const pup = require("puppeteer");
 const fs = require("fs");
 const parseCsv = require("csv-parse/lib/sync");
+const chalk = require('chalk');
 
 const elib = require("./lib");
 
@@ -8,6 +9,10 @@ const { initialize, Roll } = require("./db");
 
 const userDataDir = "./userData";
 
+/**
+ *
+ * @type {{winner: string, round: int}[]}
+ */
 var rollsHistory = [];
 var betsHistory = [];
 
@@ -38,6 +43,7 @@ async function main() {
 
 	const page = await browser.newPage();
 	await elib.gotoEmpire(page);
+	const maintenance = elib.isInMaintenance(page);
 	const loggedIn = await elib.verifyLogin(page);
 	if (!loggedIn) {
 		await elib.login(page, "vacekjo", "anZ9S265z65arRuD");
@@ -59,6 +65,13 @@ async function main() {
 	globalPage = page;
 
 	client.on('Network.webSocketFrameReceived', onWsMsg);
+}
+
+function getBetAmount() {
+	const strokesSinceDice = elib.getStrokesSinceDice(rollsHistory);
+	const betAmount =  parseFloat(rules[strokesSinceDice][1])
+	console.log(chalk.blue(`Strokes since dice: ${strokesSinceDice} | Bet amount from table: ${betAmount}`));
+	return betAmount;
 }
 
 function onWsMsg({ requestId, timestamp, response }) {
@@ -86,9 +99,10 @@ function onWsMsg({ requestId, timestamp, response }) {
 		const winner = winnerHash === 0 ? "d" : winnerHash > 7 ? "ct" : "t";
 		rollsHistory.push({ winner: winner, round: data[1].round });
 
-		/* TODO: betting logic here */
-
-		bet(globalPage, 0.3, "d");
+		const betSide = "d";
+		const betAmount = getBetAmount();
+		console.log(chalk.green(`Betting ${betAmount} on ${betSide}`));
+		bet(globalPage, betAmount, betSide);
 	}
 }
 
@@ -109,10 +123,12 @@ async function bet(page, amount, winner) {
 		clear.click();
 	});
 	await input.click({ clickCount: 3 });
+	console.log("Typing bet amount");
 	await input.type(amount.toString(), { delay: Math.random() * 100 });
 	(await page.$(".coinstack")).click();
-
+	console.log("Waiting for 12 seconds");
 	await page.waitFor(12 * 1000);
+	console.log("Clicking bet button");
 	await page.evaluate(() => {
 		Array.from(document.querySelectorAll("span"))
 			.find((span) => span.innerText.trim()
@@ -122,7 +138,3 @@ async function bet(page, amount, winner) {
 }
 
 main();
-
-module.exports = {
-	getStrokesSinceDice
-};
