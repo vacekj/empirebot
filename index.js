@@ -111,6 +111,23 @@ function getBetAmount() {
 	return betAmount;
 }
 
+function sleep(ms) {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function getBetResult(winner) {
+	await sleep(2000);
+	/*Evaluate our last bet*/
+	const currentBalance = await getBalance(globalPage);
+	const change = currentBalance - lastBet.balance;
+
+	await insertBetResultToDb({
+		target: lastBet.target,
+		actual: winner,
+		change
+	});
+}
+
 async function onWsMsg({ requestId, timestamp, response }) {
 	/* Filter out nonrelevant information */
 	const payload = response.payloadData;
@@ -131,20 +148,13 @@ async function onWsMsg({ requestId, timestamp, response }) {
 				13 ct
 				4 t
 				0 d*/
-		const data = JSON.parse(payload.slice(2));
+		const data = JSON.parse(payload.slice(17));
 		const winnerHash = data[1].winner;
 		const winner = winnerHash === 0 ? "d" : winnerHash > 7 ? "ct" : "t";
 		rollsHistory.push({ winner: winner, round: data[1].round });
 
-		/*Evaluate our last bet*/
-		const currentBalance = await getBalance(globalPage);
-		const change = currentBalance - lastBet.balance;
 
-		await insertBetResultToDb({
-			target: lastBet.target,
-			actual: winner,
-			change
-		});
+		getBetResult(winner);
 
 		const betSide = "d";
 		const betAmount = getBetAmount();
@@ -200,7 +210,9 @@ async function bet(page, amount, winner) {
 	await input.click({ clickCount: 3 });
 	console.log("Typing bet amount");
 	await input.type(amount.toString(), { delay: Math.random() * 100 });
-	(await page.$(".coinstack")).click();
+	await page.waitFor(1000);
+	const defocus = await page.waitForSelector(".whitespace-no-wrap");
+	await defocus.click();
 	const secondsToWait = 8;
 	console.log(`Waiting for ${secondsToWait} seconds`);
 	await page.waitFor(secondsToWait * 1000);

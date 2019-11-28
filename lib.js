@@ -134,7 +134,7 @@ async function closeChat(page) {
  */
 function getStrokesSinceDice(rollsHistory) {
 	const lastDice = rollsHistory.find((roll) => roll.winner === "d");
-	const lastDiceRound = lastDice ? lastDice.round : rollsHistory[rollsHistory.length - 1].round;
+	const lastDiceRound = lastDice ? lastDice.round : rollsHistory[0].round;
 	return rollsHistory[rollsHistory.length - 1].round - lastDiceRound;
 }
 
