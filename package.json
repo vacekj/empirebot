@@ -21,8 +21,9 @@
     "@types/sequelize": "^4.28.7",
     "chalk": "^3.0.0",
     "csv-parse": "^4.8.2",
-    "firebase-admin": "^8.8.0",
-    "puppeteer": "^2.0.0"
+    "mysql2": "^2.1.0",
+    "puppeteer": "^2.0.0",
+    "sequelize": "^5.21.3"
   },
   "devDependencies": {
     "@types/chalk": "^2.2.0",

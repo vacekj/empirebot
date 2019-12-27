@@ -19,6 +19,14 @@ async function login(page, username_, password_) {
 		document.querySelector('a[href="/login"]')
 			.click();
 	});
+	await page.waitForNavigation();
+
+	/* We may already be logged in */
+	const isAlreadyLoggedIn = await page.$(".OpenID_UserContainer");
+	if (isAlreadyLoggedIn) {
+		(await page.waitForSelector("#imageLogin")).click();
+		return true;
+	}
 
 	const username = await page.waitForSelector("#steamAccountName");
 	await username.focus();
@@ -29,6 +37,7 @@ async function login(page, username_, password_) {
 	await password.type(password_, { delay: Math.random() * 100 });
 
 	(await page.waitForSelector("#imageLogin")).click();
+	return false;
 }
 
 /**
@@ -105,7 +114,7 @@ async function getPreviousRolls(page) {
  */
 async function closeWelcomeBackModal(page) {
 	await page.evaluate(() => {
-		const close = document.querySelector('.v--modal-close-button');
+		const close = document.querySelector('.v--modal-close-button > button');
 		if (close != null) {
 			close.click();
 		}

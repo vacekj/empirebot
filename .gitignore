@@ -1,5 +1,5 @@
 userData
-env.json
+.env.json
 # Created by .ignore support plugin (hsz.mobi)
 ### Node template
 # Logs
@@ -91,3 +91,4 @@ typings/
 # DynamoDB Local files
 .dynamodb/
 
+/.env.json

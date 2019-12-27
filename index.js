@@ -4,18 +4,9 @@ const parseCsv = require("csv-parse/lib/sync");
 const chalk = require("chalk");
 
 const elib = require("./lib");
+const db = require("./db");
 
 const userDataDir = "./userData";
-
-const admin = require("firebase-admin");
-
-let serviceAccount = require("./empirebot-9b58d-b1816793c1f1");
-
-admin.initializeApp({
-	credential: admin.credential.cert(serviceAccount)
-});
-
-let db = admin.firestore();
 
 process
 	.on('unhandledRejection', (reason, p) => {
@@ -32,14 +23,6 @@ process
  * @type {{winner: string, round: int}[]}
  */
 var rollsHistory = [];
-/**
- *
- * @type {{
- *     target: string,
- *     balance: number
- * }}
- */
-var lastBet = {};
 
 /** {Page} */
 var globalPage;
@@ -53,7 +36,7 @@ function prepareUserDataDir() {
 	}
 }
 
-const { username, password } = require("./env.json");
+const { username, password } = require("./.env.json");
 
 async function main() {
 	console.log(`
@@ -70,23 +53,27 @@ async function main() {
 	const browser = await pup.launch({
 		headless: false,
 		userDataDir: userDataDir,
-		args: ["--disable-gpu"],
+		args: ["--disable-gpu",
+			"--disable-session-crashed-bubble",
+			"--disable-infobars"],
 		defaultViewport: null
 	});
 
 	const page = await browser.newPage();
 	await elib.gotoEmpire(page);
+	await page.waitFor(3000);
 	const loggedIn = await elib.verifyLogin(page);
 	if (!loggedIn) {
-		await elib.login(page, username, password);
-		await page.waitForNavigation();
-		const steamGuardNeeded = await elib.steamGuardNeeded(page);
-		if (steamGuardNeeded) {
-			console.log("zadej steam guard kód");
-			await page.waitForNavigation({
-				timeout: 30 * 1000
-			});
-			await elib.verifyLogin(page);
+		const loggedInAlready = await elib.login(page, username, password);
+		if (!loggedInAlready) {
+			const steamGuardNeeded = await elib.steamGuardNeeded(page);
+			if (steamGuardNeeded) {
+				console.log("zadej steam guard kód");
+				await page.waitForNavigation({
+					timeout: 50 * 60 * 1000
+				});
+				await elib.verifyLogin(page);
+			}
 		}
 	}
 	await page.waitFor(4000);
@@ -111,57 +98,57 @@ function getBetAmount() {
 	return betAmount;
 }
 
-function sleep(ms) {
-	return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function getBetResult(winner) {
-	await sleep(2000);
-	/*Evaluate our last bet*/
-	const currentBalance = await getBalance(globalPage);
-	const change = currentBalance - lastBet.balance;
-
-	await insertBetResultToDb({
-		target: lastBet.target,
-		actual: winner,
-		change
-	});
-}
-
 async function onWsMsg({ requestId, timestamp, response }) {
-	/* Filter out nonrelevant information */
+
 	const payload = response.payloadData;
 	if (payload.includes('roll",')) {
-		/* 0 is dice, 1 to 7 is T, upper is CT*/
-		/*4 t
-				0 d
-				11 ct
-				9 ct
-				2 t
-				3 t
-				7 t
-				10 ct
-				11 ct
-				5 t
-				9 ct
-				10 ct
-				13 ct
-				4 t
-				0 d*/
 		const data = JSON.parse(payload.slice(17));
 		const winnerHash = data[1].winner;
-		const winner = winnerHash === 0 ? "d" : winnerHash > 7 ? "ct" : "t";
+		const winner = winnerHash === 0 ? "bonus" : winnerHash > 7 ? "ct" : "t";
 		rollsHistory.push({ winner: winner, round: data[1].round });
 
+		/* TODO: get this from user XHR */
+		const mySteamId = "76561198879849315";
 
-		getBetResult(winner);
+		/* Evaluate our bet */
+		const allBets = []
+			.concat(data[1].bets.t)
+			.concat(data[1].bets.ct)
+			.concat(data[1].bets.bonus);
+		const myBet = allBets.find((bet) => {
+			return bet.steam_id === mySteamId;
+		});
 
+		if (myBet) {
+			const hasWon = myBet.coin === winner;
+			const profit = getProfit(hasWon, myBet.amount, myBet.coin);
+
+			console.log(`Last bet: ${hasWon ? chalk.green("WON") : chalk.red("LOST")} ${profit}`);
+
+			await db.insertBetResult({
+				steam_id: mySteamId,
+				profit: profit,
+				target: myBet.coin,
+				actual: winner
+			});
+		} else {
+			console.log("Didn't bet this round");
+		}
+
+		/* Next bet */
 		const betSide = "d";
 		const betAmount = getBetAmount();
 		console.log(chalk.green(`Betting ${betAmount} on ${betSide}`));
-
 		bet(globalPage, betAmount, betSide);
 	}
+}
+
+function getProfit(hasWon, betAmount, betSide) {
+	if (!hasWon) {
+		return -betAmount;
+	}
+
+	return betSide === "bonus" ? betAmount * 14 : betAmount * 2;
 }
 
 /**
@@ -171,22 +158,6 @@ async function onWsMsg({ requestId, timestamp, response }) {
  */
 async function getBalance(page) {
 	return parseFloat(await page.$eval(".whitespace-no-wrap", (el) => el.innerHTML));
-}
-
-function insertBetResultToDb({ target, actual, change }) {
-	let collection = db.collection("bets");
-	if (!actual || !target) {
-		return;
-	}
-	collection.add({
-		target,
-		actual,
-		change,
-		created_on: new Date()
-	});
-
-	console.log("=======================");
-	console.log(`Last bet: ${target === actual ? chalk.green("WON") : chalk.red("LOST")} ${change}`);
 }
 
 /**
@@ -223,12 +194,6 @@ async function bet(page, amount, winner) {
 				.toLowerCase() === "win 14")
 			.click();
 	});
-
-	const currentBalance = await getBalance(globalPage);
-	lastBet = {
-		target: winner,
-		balance: currentBalance
-	};
 }
 
 main();
