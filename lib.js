@@ -13,31 +13,37 @@ async function gotoEmpire(page) {
  * @param {Page} page
  * @param username_
  * @param password_
+ * @returns boolean True if no login needed
  */
 async function login(page, username_, password_) {
-	await page.evaluate(() => {
-		document.querySelector('a[href="/login"]')
-			.click();
-	});
-	await page.waitForNavigation();
+	try {
 
-	/* We may already be logged in */
-	const isAlreadyLoggedIn = await page.$(".OpenID_UserContainer");
-	if (isAlreadyLoggedIn) {
+		await page.evaluate(() => {
+			document.querySelector('a[href="/login"]')
+				.click();
+		});
+		await page.waitForNavigation();
+
+		/* We may already be logged in */
+		const isAlreadyLoggedIn = await page.$(".OpenID_UserContainer");
+		if (isAlreadyLoggedIn) {
+			(await page.waitForSelector("#imageLogin")).click();
+			return true;
+		}
+
+		const username = await page.waitForSelector("#steamAccountName");
+		await username.focus();
+		await username.type(username_, { delay: Math.random() * 100 });
+
+		const password = await page.waitForSelector("#steamPassword");
+		await password.focus();
+		await password.type(password_, { delay: Math.random() * 100 });
+
 		(await page.waitForSelector("#imageLogin")).click();
-		return true;
+		return false;
+	} catch (e) {
+		console.error("Failed to close Welcome back modal");
 	}
-
-	const username = await page.waitForSelector("#steamAccountName");
-	await username.focus();
-	await username.type(username_, { delay: Math.random() * 100 });
-
-	const password = await page.waitForSelector("#steamPassword");
-	await password.focus();
-	await password.type(password_, { delay: Math.random() * 100 });
-
-	(await page.waitForSelector("#imageLogin")).click();
-	return false;
 }
 
 /**
@@ -68,8 +74,12 @@ async function solveSteamGuard(page, code) {
  * @param {Page} page
  */
 async function verifyLogin(page) {
-	const avatar = await page.$(".avatar");
-	return avatar != null;
+	try {
+		const avatar = await page.$(".avatar");
+		return avatar != null;
+	} catch (e) {
+		console.error("Failed to close Welcome back modal");
+	}
 }
 
 /**
@@ -113,13 +123,16 @@ async function getPreviousRolls(page) {
  *
  */
 async function closeWelcomeBackModal(page) {
-	await page.evaluate(() => {
-		const close = document.querySelector('.v--modal-close-button > button');
-		if (close != null) {
-			close.click();
-		}
-	});
-
+	try {
+		await page.evaluate(() => {
+			const close = document.querySelector('.v--modal-close-button > button');
+			if (close != null) {
+				close.click();
+			}
+		});
+	} catch (e) {
+		console.error("Failed to close Welcome back modal");
+	}
 }
 
 /**
@@ -128,12 +141,16 @@ async function closeWelcomeBackModal(page) {
  *
  */
 async function closeChat(page) {
-	await page.evaluate(() => {
-		const close = document.querySelector('.w-40.h-full.flex.items-center.justify-center.link');
-		if (close != null) {
-			close.click();
-		}
-	});
+	try {
+		await page.evaluate(() => {
+			const close = document.querySelector('.w-40.h-full.flex.items-center.justify-center.link');
+			if (close != null) {
+				close.click();
+			}
+		});
+	} catch (e) {
+		console.error("Failed to close Welcome back modal");
+	}
 }
 
 /**
@@ -147,15 +164,6 @@ function getStrokesSinceDice(rollsHistory) {
 	return rollsHistory[rollsHistory.length - 1].round - lastDiceRound;
 }
 
-/**
- *
- * @param {Page} page
- *
- */
-function isInMaintenance(page) {
-	const divs = page.$$("div");
-}
-
 module.exports = {
 	gotoEmpire,
 	login,
@@ -163,6 +171,5 @@ module.exports = {
 	steamGuardNeeded,
 	closeWelcomeBackModal,
 	closeChat,
-	getStrokesSinceDice,
-	isInMaintenance
+	getStrokesSinceDice
 };

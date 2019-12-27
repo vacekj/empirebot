@@ -17,13 +17,18 @@ BetResult.init({
 }, { sequelize: sequelize });
 
 async function insertBetResult(betResult) {
-	await sequelize.sync()
-		.then(() => {
-			BetResult.create(betResult);
-		})
-		.then((betResult) => {
-			console.log("Insert bet result: " + betResult.toJSON());
-		});
+	try {
+		await sequelize.sync()
+			.then(() => {
+				BetResult.create(betResult);
+			})
+			.then((betResult) => {
+				console.log("Insert bet result: " + betResult.toJSON());
+			});
+
+	} catch (e) {
+		console.error("Failed to close Welcome back modal");
+	}
 }
 
 module.exports = {

@@ -49,6 +49,7 @@ async function main() {
                                                                         
 `);
 	console.log("(c) Josef Vacek");
+
 	prepareUserDataDir();
 	const browser = await pup.launch({
 		headless: false,
@@ -60,6 +61,8 @@ async function main() {
 	});
 
 	const page = await browser.newPage();
+	page.on("response", onResponse);
+
 	await elib.gotoEmpire(page);
 	await page.waitFor(3000);
 	const loggedIn = await elib.verifyLogin(page);
@@ -96,6 +99,12 @@ function getBetAmount() {
 		)
 	);
 	return betAmount;
+}
+
+async function onResponse(response) {
+	if ((await response.url()).contains("https://csgoempire.com/api/v2/metadata")) {
+		const json = await response.json()
+	}
 }
 
 async function onWsMsg({ requestId, timestamp, response }) {
