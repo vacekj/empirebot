@@ -1,6 +1,6 @@
-const { getStrokesSinceDice } = require("./lib");
+const { getStrokesSinceBonus } = require("./src/lib");
 
-test("Get strokes since dice correctly", () => {
+test("Get strokes since Bonus correctly", () => {
 	const strokes5 = [
 		{ winner: "ct", round: 1 },
 		{ winner: "d", round: 2 },
@@ -10,13 +10,13 @@ test("Get strokes since dice correctly", () => {
 		{ winner: "t", round: 6 },
 		{ winner: "t", round: 7 },
 	];
-	expect(getStrokesSinceDice(strokes5))
+	expect(getStrokesSinceBonus(strokes5))
 		.toBe(5);
 
 	const strokes00 = [
 		{ winner: "d", round: 1 }
 	];
 
-	expect(getStrokesSinceDice(strokes00))
+	expect(getStrokesSinceBonus(strokes00))
 		.toBe(0);
 });
