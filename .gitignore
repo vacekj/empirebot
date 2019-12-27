@@ -92,5 +92,4 @@ typings/
 .dynamodb/
 
 /src/.env.json
-!/build/
-!/build/
+.env.json
