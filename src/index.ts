@@ -4,8 +4,8 @@ import parseCsv from "csv-parse/lib/sync";
 import chalk from "chalk";
 
 import * as elib from "./lib";
-import { getPath, paths } from "./Paths";
 import { Roll, Side } from "./lib";
+import { getPath, paths } from "./Paths";
 
 import DatabaseHandler from "./db";
 
@@ -26,7 +26,7 @@ let steamId: string;
 let DbHandler = new DatabaseHandler();
 
 const rulesFile = fs.readFileSync(getPath(paths.algoPath));
-const rules = parseCsv(rulesFile);
+const rules: [[string, string]] = parseCsv(rulesFile);
 
 function prepareUserDataDir() {
 	if (!fs.existsSync(getPath(paths.userDataDir))) {
@@ -54,11 +54,7 @@ async function main() {
 	const browser = await pup.launch({
 		headless: false,
 		userDataDir: userDataDir,
-		args: [
-			"--disable-gpu",
-			"--disable-session-crashed-bubble",
-			"--disable-infobars"
-		],
+		args: ["--disable-gpu", "--disable-session-crashed-bubble", "--disable-infobars"],
 		defaultViewport: null
 	});
 
@@ -96,13 +92,17 @@ async function main() {
 
 function getBetAmount() {
 	const strokesSinceBonus = elib.getStrokesSinceBonus(rollsHistory);
-	const betAmount = parseFloat(rules[strokesSinceBonus][1]);
 	console.log(
 		chalk.inverse(
-			`Strokes since Bonus: ${strokesSinceBonus} | Bet amount from table: ${betAmount}`
+			`Strokes since Bonus: ${strokesSinceBonus}`
 		)
 	);
-	return betAmount;
+	const rule = rules.find(rule => parseInt(rule[0]) == strokesSinceBonus);
+	if (!rule) {
+		console.log(chalk.inverse(`Strokes since Bonus: ${strokesSinceBonus} | No rule found`));
+		return 0;
+	}
+	return parseFloat(rule[1]);
 }
 
 interface User {
@@ -145,8 +145,7 @@ async function onWsMsg({ response }: { response: { payloadData: string } }) {
 	if (payload.includes("roll\",")) {
 		const data = JSON.parse(payload.slice(17));
 		const winnerHash = data[1].winner;
-		const winner =
-			winnerHash === 0 ? Side.Bonus : winnerHash > 7 ? Side.CT : Side.T;
+		const winner = winnerHash === 0 ? Side.Bonus : winnerHash > 7 ? Side.CT : Side.T;
 		rollsHistory.push({ winner: winner, round: data[1].round });
 
 		/* Evaluate our bet */
@@ -162,11 +161,7 @@ async function onWsMsg({ response }: { response: { payloadData: string } }) {
 			const hasWon = myBet.coin === winner;
 			const profit = getProfit(hasWon, myBet.amount, myBet.coin as Side);
 
-			console.log(
-				`Last bet: ${
-					hasWon ? chalk.green("WON") : chalk.red("LOST")
-				} ${profit}`
-			);
+			console.log(`Last bet: ${hasWon ? chalk.green("WON") : chalk.red("LOST")} ${profit}`);
 
 			await DbHandler.insertBetResult({
 				steam_id: steamId,
@@ -181,6 +176,10 @@ async function onWsMsg({ response }: { response: { payloadData: string } }) {
 		/* Next bet */
 		const betSide = "d";
 		const betAmount = getBetAmount();
+		if (betAmount == 0) {
+			console.log(chalk.green(`Skipping bet because of 0 bet amount value.`));
+			return;
+		}
 		console.log(chalk.green(`Betting ${betAmount} on ${betSide}`));
 		await bet(globalPage, betAmount);
 	}
@@ -195,9 +194,7 @@ function getProfit(hasWon: boolean, betAmount: number, betSide: Side) {
 }
 
 async function bet(page: Page, amount: number) {
-	const input = await page.waitForSelector(
-		"input[placeholder=\"Enter bet amount...\"]"
-	);
+	const input = await page.waitForSelector("input[placeholder=\"Enter bet amount...\"]");
 	await page.evaluate(() => {
 		const btns = Array.from(document.querySelectorAll("button"));
 		const clear = btns.find(btn => {
