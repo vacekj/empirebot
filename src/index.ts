@@ -1,5 +1,3 @@
-import "core-js/proposals/reflect-metadata";
-
 import pup, { Page, Response } from "puppeteer";
 import fs from "fs";
 import parseCsv from "csv-parse/lib/sync";
@@ -23,6 +21,7 @@ process
 
 let rollsHistory: Roll[] = [];
 let globalPage: Page;
+let steamId: string;
 
 let DbHandler = new DatabaseHandler();
 
@@ -50,9 +49,10 @@ async function main() {
 	console.log("(c) Josef Vacek");
 	await DbHandler.init();
 	prepareUserDataDir();
+	const userDataDir = getPath(paths.userDataDir);
 	const browser = await pup.launch({
 		headless: false,
-		userDataDir: getPath(paths.userDataDir),
+		userDataDir: userDataDir,
 		args: [
 			"--disable-gpu",
 			"--disable-session-crashed-bubble",
@@ -68,8 +68,9 @@ async function main() {
 	await page.waitFor(3000);
 	const loggedIn = await elib.isLoggedIn(page);
 	if (!loggedIn) {
+		console.log("Trying to log in");
 		const loggedInAlready = await elib.login(page, username, password);
-		if (!loggedInAlready) {
+		if (!loggedInAlready.alreadyLoggedIn) {
 			const steamGuardNeeded = await elib.steamGuardNeeded(page);
 			if (steamGuardNeeded) {
 				console.log("zadej steam guard kód");
@@ -80,7 +81,7 @@ async function main() {
 			}
 		}
 	}
-	await page.waitFor(4000);
+	await page.waitFor(2000);
 	await elib.closeWelcomeBackModal(page);
 	await elib.closeChat(page);
 
@@ -103,11 +104,20 @@ function getBetAmount() {
 	return betAmount;
 }
 
+interface User {
+	steam_id: string;
+}
+
 async function onResponse(response: Response) {
 	const url = await response.url();
-	if (url.includes("https://csgoempire.com/api/v2/metadata")) {
-		const json = await response.json();
-		console.log(json);
+	if (
+		url.includes("https://csgoempire.com/api/v2/metadata") &&
+		(await response.status()) === 200
+	) {
+		const json: { user: User } = (await response.json()) as { user: User };
+		if (json.user) {
+			steamId = json.user.steam_id;
+		}
 	}
 }
 
@@ -138,16 +148,13 @@ async function onWsMsg({ response }: { response: { payloadData: string } }) {
 			winnerHash === 0 ? Side.Bonus : winnerHash > 7 ? Side.CT : Side.T;
 		rollsHistory.push({ winner: winner, round: data[1].round });
 
-		/* TODO: get this from user XHR */
-		const mySteamId = "76561198879849315";
-
 		/* Evaluate our bet */
 		const allBets: Bet[] = []
-			.concat(data[1].bets.t)
-			.concat(data[1].bets.ct)
-			.concat(data[1].bets.bonus);
+			.concat(data[1]?.bets?.t)
+			.concat(data[1]?.bets?.ct)
+			.concat(data[1]?.bets?.bonus);
 		const myBet = allBets.find(bet => {
-			return bet.steam_id === mySteamId;
+			return bet.steam_id === steamId;
 		});
 
 		if (myBet) {
@@ -161,8 +168,8 @@ async function onWsMsg({ response }: { response: { payloadData: string } }) {
 			);
 
 			await DbHandler.insertBetResult({
-				steam_id: mySteamId,
-				profit: profit,
+				steam_id: steamId,
+				change: profit,
 				target: myBet.coin as Side,
 				actual: winner
 			});
@@ -193,7 +200,7 @@ async function bet(page: Page, amount: number) {
 	await page.evaluate(() => {
 		const btns = Array.from(document.querySelectorAll("button"));
 		const clear = btns.find(btn => {
-			return btn.innerText.trim() === "Clear";
+			return btn.innerText.trim().toLowerCase() === "clear";
 		});
 		if (clear) {
 			clear.click();
@@ -204,11 +211,13 @@ async function bet(page: Page, amount: number) {
 	console.log("Typing bet amount");
 	await input.type(amount.toString(), { delay: Math.random() * 100 });
 	await page.waitFor(1000);
-	const defocus = await page.waitForSelector(".whitespace-no-wrap");
-	await defocus.click();
-	const secondsToWait = 8;
-	console.log(`Waiting for ${secondsToWait} seconds`);
-	await page.waitFor(secondsToWait * 1000);
+	console.log("Defocusing input");
+	(await page.waitForSelector("body")).click();
+	await page.waitForSelector(".wheel__marker");
+	console.log("Waiting for end of roll");
+	await page.waitForSelector(".wheel__marker", {
+		hidden: true
+	});
 	console.log("Clicking bet button");
 	await page.evaluate(() => {
 		Array.from(document.querySelectorAll("span"))

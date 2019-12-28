@@ -1,26 +1,31 @@
-import "reflect-metadata";
-import { Connection, createConnection } from "typeorm";
-import { BetResult } from "./entity/BetResult";
+import { initializeApp, credential, firestore } from "firebase-admin";
+import { Side } from "./lib";
+
+interface BetResult {
+	steam_id: string;
+	target: Side;
+	actual: Side;
+	change: number;
+}
 
 export default class DatabaseHandler {
-	// @ts-ignore
-	private connection: Connection;
+	private db: firestore.Firestore;
 
 	async init() {
-		this.connection = await createConnection({
-			type: "sqlite",
-			database: "db.sqlite",
-			entities: [BetResult]
+		let serviceAccount = require("../empirebot-9b58d-10d4c4242196.json");
+
+		initializeApp({
+			credential: credential.cert(serviceAccount)
 		});
+
+		this.db = firestore();
 	}
 
-	// @ts-ignore
-	async insertBetResult(betResult: Partial<BetResult>) {
+	async insertBetResult(betResult: BetResult) {
 		try {
-
+			this.db.collection("users").add(betResult);
 		} catch (e) {
-			console.error("Failed to close Welcome back modal");
+			console.error("Failed to insert bet result to db");
 		}
 	}
-
 }
