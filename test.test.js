@@ -1,22 +1,45 @@
-const { getStrokesSinceBonus } = require("./src/lib");
+const { Side, getStrokesSinceBonus } = require("./src/lib");
 
-test("Get strokes since Bonus correctly", () => {
-	const strokes5 = [
-		{ winner: "ct", round: 1 },
-		{ winner: "d", round: 2 },
-		{ winner: "t", round: 3 },
-		{ winner: "t", round: 4 },
-		{ winner: "t", round: 5 },
-		{ winner: "t", round: 6 },
-		{ winner: "t", round: 7 },
-	];
-	expect(getStrokesSinceBonus(strokes5))
-		.toBe(5);
+describe("GetStrokesSinceBonus tests", () => {
+	test("One bonus in history", () => {
 
-	const strokes00 = [
-		{ winner: "d", round: 1 }
-	];
+		const strokes5 = [
+			{ winner: Side.CT, round: 1 },
+			{ winner: Side.Bonus, round: 2 },
+			{ winner: Side.T, round: 3 },
+			{ winner: Side.T, round: 4 },
+			{ winner: Side.T, round: 5 },
+			{ winner: Side.T, round: 6 },
+			{ winner: Side.T, round: 7 }
+		];
+		expect(getStrokesSinceBonus(strokes5))
+			.toBe(5);
+	});
 
-	expect(getStrokesSinceBonus(strokes00))
-		.toBe(0);
+	test("One bonus only", () => {
+
+		const strokes00 = [
+			{ winner: Side.Bonus, round: 1 }
+		];
+
+		expect(getStrokesSinceBonus(strokes00))
+			.toBe(0);
+	});
+
+	test("More bonuses", () => {
+		const strokes00 = [
+			{ winner: Side.Bonus, round: 1 },
+			{ winner: Side.Bonus, round: 2 },
+			{ winner: Side.Bonus, round: 3 },
+			{ winner: Side.Bonus, round: 4 },
+			{ winner: Side.Bonus, round: 5 },
+			{ winner: Side.Bonus, round: 6 },
+			{ winner: Side.T, round: 7 }
+
+		];
+
+		expect(getStrokesSinceBonus(strokes00))
+			.toBe(1);
+	});
 });
+
