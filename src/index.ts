@@ -83,7 +83,7 @@ async function main() {
 	}
 	await page.waitFor(2000);
 	await elib.closeWelcomeBackModal(page);
-	await elib.closeChat(page);
+	// await elib.closeChat(page);
 
 	// @ts-ignore
 	const client = page._client;
