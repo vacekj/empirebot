@@ -154,6 +154,9 @@ async function onWsMsg({ response }: { response: { payloadData: string } }) {
 		const data = JSON.parse(payload.slice(17));
 		const winnerHash = data[1].winner;
 		const winner = winnerHash === 0 ? Side.Bonus : winnerHash > 7 ? Side.CT : Side.T;
+		if (winner === Side.Bonus) { /* Reset rolls history on bonus */
+			rollsHistory = [];
+		}
 		rollsHistory.push({ winner: winner, round: data[1].round });
 
 		/* Evaluate our bet */

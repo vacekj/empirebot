@@ -34,12 +34,15 @@ describe("GetStrokesSinceBonus tests", () => {
 			{ winner: Side.Bonus, round: 4 },
 			{ winner: Side.Bonus, round: 5 },
 			{ winner: Side.Bonus, round: 6 },
-			{ winner: Side.T, round: 7 }
-
+			{ winner: Side.T, round: 7 },
+			{ winner: Side.T, round: 8 },
+			{ winner: Side.Bonus, round: 9 },
+			{ winner: Side.T, round: 10 },
+			{ winner: Side.T, round: 11 }
 		];
 
 		expect(getStrokesSinceBonus(strokes00))
-			.toBe(1);
+			.toBe(2);
 	});
 });
 
