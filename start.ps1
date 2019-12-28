@@ -1,3 +1,3 @@
 npm install;
-npm build;
+npm run build;
 node build/index.js;
