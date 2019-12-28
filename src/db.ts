@@ -19,14 +19,16 @@ export default class DatabaseHandler {
 		});
 
 		this.db = firestore();
+		console.log("Firestore initialized succesfully.");
 	}
 
 	async insertBetResult(betResult: BetResult) {
 		try {
-			this.db.collection("betresults").add({
+			const doc: any = await this.db.collection("betresults").add({
 				...betResult,
-				created_at: (new Date().toUTCString())
+				created_at: new Date().toUTCString()
 			});
+			console.log(`Db write success: ${doc.steam_id} | ${doc.change}`);
 		} catch (e) {
 			console.error("Failed to insert bet result to db");
 		}
