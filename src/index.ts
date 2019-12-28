@@ -92,6 +92,14 @@ async function main() {
 
 function getBetAmount() {
 	const strokesSinceBonus = elib.getStrokesSinceBonus(rollsHistory);
+	if (strokesSinceBonus === -1) {
+		console.log(
+			chalk.inverse(
+				`No bonus found in history, waiting...`
+			)
+		);
+		return 0;
+	}
 	console.log(
 		chalk.inverse(
 			`Strokes since Bonus: ${strokesSinceBonus}`
@@ -99,7 +107,7 @@ function getBetAmount() {
 	);
 	const rule = rules.find(rule => parseInt(rule[0]) == strokesSinceBonus);
 	if (!rule) {
-		console.log(chalk.inverse(`Strokes since Bonus: ${strokesSinceBonus} | No rule found`));
+		console.log(chalk.inverse(`No rule found`));
 		return 0;
 	}
 	return parseFloat(rule[1]);

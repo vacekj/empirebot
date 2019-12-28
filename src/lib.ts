@@ -147,8 +147,11 @@ export async function closeChat(page: Page) {
 }
 
 
-export function getStrokesSinceBonus(rollsHistory: Roll[]) {
+export function getStrokesSinceBonus(rollsHistory: Roll[], countFromBonus = true) {
 	const lastBonus = rollsHistory.find(roll => roll.winner === Side.Bonus);
+	if (!lastBonus && countFromBonus) {
+		return -1;
+	}
 	const lastBonusRound = lastBonus ? lastBonus.round : rollsHistory[0].round;
 	return rollsHistory[rollsHistory.length - 1].round - lastBonusRound;
 }

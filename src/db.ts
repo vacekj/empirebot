@@ -23,7 +23,10 @@ export default class DatabaseHandler {
 
 	async insertBetResult(betResult: BetResult) {
 		try {
-				this.db.collection("betresults").add(betResult);
+			this.db.collection("betresults").add({
+				...betResult,
+				created_at: (new Date().toUTCString())
+			});
 		} catch (e) {
 			console.error("Failed to insert bet result to db");
 		}
