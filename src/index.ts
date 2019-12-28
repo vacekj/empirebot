@@ -48,6 +48,7 @@ async function main() {
 `);
 	console.log("(c) Josef Vacek");
 	await DbHandler.init();
+
 	prepareUserDataDir();
 	const userDataDir = getPath(paths.userDataDir);
 	const browser = await pup.launch({
