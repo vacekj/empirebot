@@ -12,11 +12,11 @@ import DatabaseHandler from "./db";
 
 process
 	.on("unhandledRejection", (reason, p) => {
-		logger.error(reason, "Unhandled Rejection at Promise", p);
+		logger.error("Unhandled Rejection at Promise", reason, p);
 		process.exit(1);
 	})
 	.on("uncaughtException", err => {
-		logger.error(err, "Uncaught Exception thrown");
+		logger.error("Uncaught Exception thrown", err);
 		process.exit(1);
 	});
 
@@ -54,7 +54,7 @@ function createLogger() {
 	return logger;
 }
 
-const logger = createLogger();
+export const logger = createLogger();
 
 async function main() {
 	logger.info(`

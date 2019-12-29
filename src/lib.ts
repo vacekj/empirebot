@@ -1,5 +1,7 @@
 import { Page, ElementHandle } from "puppeteer";
 
+import { logger } from "./index";
+
 export async function gotoEmpire(page: Page) {
 	return await page.goto("https://csgoempire.com/");
 }
@@ -44,8 +46,8 @@ export async function login(
 			alreadyLoggedIn: false
 		};
 	} catch (e) {
-		console.error("Failed to log in");
-		console.error(e);
+		logger.error("Failed to log in");
+		logger.error(e);
 		return {
 			success: false,
 			alreadyLoggedIn: false
@@ -62,7 +64,7 @@ export async function solveSteamGuard(page: Page, code: string) {
 		await page.waitForNavigation();
 		const codeInput = await page.$(".authcode_entry_input");
 		if (!codeInput) {
-			console.error("Couldn't solve Steam Guard");
+			logger.error("Couldn't solve Steam Guard");
 			return false;
 		}
 		const authButton = await page.waitForSelector(".auth_button");
@@ -70,8 +72,8 @@ export async function solveSteamGuard(page: Page, code: string) {
 		await authButton.click();
 		return true;
 	} catch (e) {
-		console.error("Couldn't solve Steam Guard");
-		console.error(e);
+		logger.error("Couldn't solve Steam Guard");
+		logger.error(e);
 		return false;
 	}
 }
@@ -81,7 +83,7 @@ export async function isLoggedIn(page: Page) {
 		const avatar = await page.$(".avatar");
 		return avatar != null;
 	} catch (e) {
-		console.error("Failed to verify login");
+		logger.error("Failed to verify login");
 		throw e;
 	}
 }
@@ -115,7 +117,7 @@ export async function getPreviousRolls(page: Page) {
 }
 
 export async function closeWelcomeBackModal(page: Page) {
-	console.log("Closing welcome back modal.");
+	logger.info("Closing welcome back modal.");
 	try {
 		await page.evaluate(() => {
 			const close: HTMLButtonElement | null = document.querySelector(
@@ -126,12 +128,12 @@ export async function closeWelcomeBackModal(page: Page) {
 			}
 		});
 	} catch (e) {
-		console.error("Failed to close Welcome back modal");
+		logger.error("Failed to close Welcome back modal");
 	}
 }
 
 export async function closeChat(page: Page) {
-	console.log("Closing chat.");
+	logger.info("Closing chat.");
 	try {
 		await page.evaluate(() => {
 			const close: HTMLButtonElement | null = document.querySelector(
@@ -142,7 +144,7 @@ export async function closeChat(page: Page) {
 			}
 		});
 	} catch (e) {
-		console.error("Failed to close chat");
+		logger.error("Failed to close chat");
 	}
 }
 
