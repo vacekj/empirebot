@@ -2,6 +2,7 @@ import pup, { Page, Response } from "puppeteer";
 import fs from "fs";
 import parseCsv from "csv-parse/lib/sync";
 import chalk from "chalk";
+import * as winston from "winston";
 
 import * as elib from "./lib";
 import { Roll, Side } from "./lib";
@@ -11,11 +12,11 @@ import DatabaseHandler from "./db";
 
 process
 	.on("unhandledRejection", (reason, p) => {
-		console.error(reason, "Unhandled Rejection at Promise", p);
+		logger.error(reason, "Unhandled Rejection at Promise", p);
 		process.exit(1);
 	})
 	.on("uncaughtException", err => {
-		console.error(err, "Uncaught Exception thrown");
+		logger.error(err, "Uncaught Exception thrown");
 		process.exit(1);
 	});
 
@@ -36,8 +37,27 @@ function prepareUserDataDir() {
 
 const { username, password } = require(getPath(paths.envPath));
 
+function createLogger() {
+	const logger = winston.createLogger({
+		levels: winston.config.cli.levels,
+		format: winston.format.json(),
+		transports: [
+			new winston.transports.File({ filename: "error.log", level: "error" }),
+			new winston.transports.File({ filename: "combined.log" })
+		]
+	});
+
+	logger.add(new winston.transports.Console({
+		format: winston.format.simple()
+	}));
+
+	return logger;
+}
+
+const logger = createLogger();
+
 async function main() {
-	console.log(`
+	logger.info(`
 ███████╗███╗   ███╗██████╗ ██╗██████╗ ███████╗██████╗  ██████╗ ████████╗
 ██╔════╝████╗ ████║██╔══██╗██║██╔══██╗██╔════╝██╔══██╗██╔═══██╗╚══██╔══╝
 █████╗  ██╔████╔██║██████╔╝██║██████╔╝█████╗  ██████╔╝██║   ██║   ██║
@@ -46,7 +66,7 @@ async function main() {
 ╚══════╝╚═╝     ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝╚═════╝  ╚═════╝    ╚═╝
 
 `);
-	console.log("(c) Josef Vacek");
+	logger.info("(c) Josef Vacek");
 	await DbHandler.init();
 
 	prepareUserDataDir();
@@ -65,12 +85,12 @@ async function main() {
 	await page.waitFor(3000);
 	const loggedIn = await elib.isLoggedIn(page);
 	if (!loggedIn) {
-		console.log("Trying to log in");
+		logger.info("Trying to log in");
 		const loggedInAlready = await elib.login(page, username, password);
 		if (!loggedInAlready.alreadyLoggedIn) {
 			const steamGuardNeeded = await elib.steamGuardNeeded(page);
 			if (steamGuardNeeded) {
-				console.log("zadej steam guard kód");
+				logger.warn("zadej steam guard kód");
 				await page.waitForNavigation({
 					timeout: 50 * 60 * 1000
 				});
@@ -93,21 +113,21 @@ async function main() {
 function getBetAmount() {
 	const strokesSinceBonus = elib.getStrokesSinceBonus(rollsHistory);
 	if (strokesSinceBonus === -1) {
-		console.log(
+		logger.warn(
 			chalk.inverse(
 				`No bonus found in history, waiting...`
 			)
 		);
 		return 0;
 	}
-	console.log(
+	logger.info(
 		chalk.inverse(
 			`Strokes since Bonus: ${strokesSinceBonus}`
 		)
 	);
 	const rule = rules.find(rule => parseInt(rule[0]) == strokesSinceBonus);
 	if (!rule) {
-		console.log(chalk.inverse(`No rule found`));
+		logger.info(chalk.inverse(`No rule found`));
 		return 0;
 	}
 	return parseFloat(rule[1]);
@@ -172,7 +192,7 @@ async function onWsMsg({ response }: { response: { payloadData: string } }) {
 			const hasWon = myBet.coin === winner;
 			const profit = getProfit(hasWon, myBet.amount, myBet.coin as Side);
 
-			console.log(`Last bet: ${hasWon ? chalk.green("WON") : chalk.red("LOST")} ${profit}`);
+			logger.info(`Last bet: ${hasWon ? chalk.green("WON") : chalk.red("LOST")} ${profit}`);
 
 			await DbHandler.insertBetResult({
 				steam_id: steamId,
@@ -181,17 +201,17 @@ async function onWsMsg({ response }: { response: { payloadData: string } }) {
 				actual: winner
 			});
 		} else {
-			console.log("Didn't bet this round");
+			logger.warn("Didn't bet this round");
 		}
 
 		/* Next bet */
 		const betSide = "d";
 		const betAmount = getBetAmount();
 		if (betAmount == 0) {
-			console.log(chalk.green(`Skipping bet because of 0 bet amount value.`));
+			logger.warn(chalk.green(`Skipping bet because of 0 bet amount value.`));
 			return;
 		}
-		console.log(chalk.green(`Betting ${betAmount} on ${betSide}`));
+		logger.info(chalk.green(`Betting ${betAmount} on ${betSide}`));
 		await bet(globalPage, betAmount);
 	}
 }
@@ -217,17 +237,17 @@ async function bet(page: Page, amount: number) {
 	});
 
 	await input.click({ clickCount: 3 });
-	console.log("Typing bet amount");
+	logger.debug("Typing bet amount");
 	await input.type(amount.toString(), { delay: Math.random() * 100 });
 	await page.waitFor(1000);
-	console.log("Defocusing input");
+	logger.debug("Defocusing input");
 	(await page.waitForSelector("body")).click();
 	await page.waitForSelector(".wheel__marker");
-	console.log("Waiting for end of roll");
+	logger.debug("Waiting for end of roll");
 	await page.waitForSelector(".wheel__marker", {
 		hidden: true
 	});
-	console.log("Clicking bet button");
+	logger.debug("Clicking bet button");
 	await page.evaluate(() => {
 		Array.from(document.querySelectorAll("span"))
 			.find(span => span.innerText.trim().toLowerCase() === "win 14")
