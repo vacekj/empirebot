@@ -247,12 +247,17 @@ async function bet(page: Page, amount: number) {
 	await page.waitForSelector(".wheel__marker", {
 		hidden: true
 	});
+	await page.waitFor(delay(1000));
 	logger.debug("Clicking bet button");
 	await page.evaluate(() => {
 		Array.from(document.querySelectorAll("span"))
 			.find(span => span.innerText.trim().toLowerCase() === "win 14")
 			?.click();
 	});
+}
+
+function delay(ms: number, random: number = 100) {
+	return ms + Math.random() * random;
 }
 
 main();
