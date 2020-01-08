@@ -124,7 +124,7 @@ function getBetAmount() {
 }
 
 interface User {
-	steam_id: string;
+	steam_id?: string;
 }
 
 async function onResponse(response: Response) {
@@ -133,8 +133,8 @@ async function onResponse(response: Response) {
 		url.includes("https://csgoempire.com/api/v2/metadata") &&
 		(await response.status()) === 200
 	) {
-		const json: { user: User } = (await response.json()) as { user: User };
-		if (json.user) {
+		const json: { user?: User } = (await response.json()) as { user: User };
+		if (json.user?.steam_id) {
 			steamId = json.user.steam_id;
 		}
 	}
