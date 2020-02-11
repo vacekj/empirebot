@@ -174,7 +174,7 @@ async function onWsMsg({ response }: { response: { payloadData: string } }) {
 			.concat(data[1]?.bets?.ct)
 			.concat(data[1]?.bets?.bonus);
 		const myBet = allBets.find(bet => {
-			return bet.steam_id === steamId;
+			return bet?.steam_id === steamId;
 		});
 
 		if (myBet) {
