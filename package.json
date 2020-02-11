@@ -20,7 +20,8 @@
 		"test": "npx jest",
 		"test:lint": "tslint --project . && prettier \"src/**/*.ts\" --list-different",
 		"watch": "run-s clean build:main && run-p \"build:main -- -w\" \"test:unit -- --watch\"",
-		"clean": "trash build test"
+		"clean": "trash build test",
+		"start": "node build/index.js"
 	},
 	"scripts-info": {
 		"info": "Display information about the package scripts",

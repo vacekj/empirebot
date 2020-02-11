@@ -93,3 +93,5 @@ typings/
 
 /src/.env.json
 .env.json
+
+userData

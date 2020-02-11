@@ -10,14 +10,6 @@ import { getPath, paths } from "./Paths";
 
 import DatabaseHandler from "./db";
 
-process
-	.on("unhandledRejection", (reason, p) => {
-		logger.error("Unhandled Rejection at Promise", reason, p);
-	})
-	.on("uncaughtException", err => {
-		logger.error("Uncaught Exception thrown", err);
-	});
-
 let rollsHistory: Roll[] = [];
 let globalPage: Page;
 let steamId: string;
@@ -53,6 +45,14 @@ function createLogger() {
 }
 
 export const logger = createLogger();
+
+process
+	.on("unhandledRejection", (reason, p) => {
+		logger.error("Unhandled Rejection at Promise", reason, p);
+	})
+	.on("uncaughtException", err => {
+		logger.error("Uncaught Exception thrown", err);
+	});
 
 async function main() {
 	logger.info(chalk.magenta(`Empirebot v.2.0.0`));
@@ -90,7 +90,6 @@ async function main() {
 	}
 	await page.waitFor(2000);
 	await elib.closeWelcomeBackModal(page);
-	// await elib.closeChat(page);
 
 	// @ts-ignore
 	const client = page._client;
@@ -186,7 +185,7 @@ async function onWsMsg({ response }: { response: { payloadData: string } }) {
 
 			await DbHandler.insertBetResult({
 				steam_id: steamId,
-				change: profit,
+				change: profit / 100, // All amounts are multiplied by 100 on the server to maintain integer arithmetic
 				target: myBet.coin as Side,
 				actual: winner
 			});
@@ -229,15 +228,17 @@ async function bet(page: Page, amount: number) {
 	await input.click({ clickCount: 3 });
 	logger.debug("Typing bet amount");
 	await input.type(amount.toString(), { delay: Math.random() * 100 });
-	await page.waitFor(1000);
+	await page.waitFor(300);
 	logger.debug("Defocusing input");
 	(await page.waitForSelector("body")).click();
-	await page.waitForSelector(".wheel__marker");
+	await page.waitForSelector(".wheel__marker", {
+		timeout: 10_000
+	});
 	logger.debug("Waiting for end of roll");
 	await page.waitForSelector(".wheel__marker", {
 		hidden: true
 	});
-	await page.waitFor(delay(1000));
+	await page.waitFor(delay(500));
 	logger.debug("Clicking bet button");
 	await page.evaluate(() => {
 		Array.from(document.querySelectorAll("span"))

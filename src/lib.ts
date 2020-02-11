@@ -1,4 +1,4 @@
-import { Page, ElementHandle } from "puppeteer";
+import { Page } from "puppeteer";
 
 import { logger } from "./index";
 
@@ -59,25 +59,6 @@ export async function steamGuardNeeded(page: Page) {
 	return !page.url().includes("https://csgoempire.com");
 }
 
-export async function solveSteamGuard(page: Page, code: string) {
-	try {
-		await page.waitForNavigation();
-		const codeInput = await page.$(".authcode_entry_input");
-		if (!codeInput) {
-			logger.error("Couldn't solve Steam Guard");
-			return false;
-		}
-		const authButton = await page.waitForSelector(".auth_button");
-		await codeInput.type(code, { delay: Math.random() * 100 });
-		await authButton.click();
-		return true;
-	} catch (e) {
-		logger.error("Couldn't solve Steam Guard");
-		logger.error(e);
-		return false;
-	}
-}
-
 export async function isLoggedIn(page: Page) {
 	try {
 		const avatar = await page.$(".avatar");
@@ -86,34 +67,6 @@ export async function isLoggedIn(page: Page) {
 		logger.error("Failed to verify login");
 		throw e;
 	}
-}
-
-export async function getBalance(page: Page): Promise<number> {
-	const coinsWrapper: ElementHandle = await page.waitForSelector(
-		".text-gold.font-bold.xl:text-sm"
-	);
-
-	const coins = (coinsWrapper as unknown as HTMLElement).firstChild as HTMLElement;
-	return parseFloat(coins.innerHTML);
-}
-
-export async function getPreviousRolls(page: Page) {
-	await page.waitForSelector(".previous-rolls-item");
-	const rollDivs = await page.$$(".previous-rolls-item > div");
-	return await Promise.all(
-		rollDivs.map(async rollDiv => {
-			const className = (
-				await rollDiv.getProperty("className")
-			).toString();
-			if (className.includes("coin-t")) {
-				return "t";
-			} else if (className.includes("coin-ct")) {
-				return "ct";
-			} else {
-				return "d";
-			}
-		})
-	);
 }
 
 export async function closeWelcomeBackModal(page: Page) {
@@ -131,23 +84,6 @@ export async function closeWelcomeBackModal(page: Page) {
 		logger.error("Failed to close Welcome back modal");
 	}
 }
-
-export async function closeChat(page: Page) {
-	logger.info("Closing chat.");
-	try {
-		await page.evaluate(() => {
-			const close: HTMLButtonElement | null = document.querySelector(
-				".w-40.h-full.flex.items-center.justify-center.link"
-			);
-			if (close != null) {
-				close.click();
-			}
-		});
-	} catch (e) {
-		logger.error("Failed to close chat");
-	}
-}
-
 
 export function getStrokesSinceBonus(rollsHistory: Roll[], countFromBonus = true) {
 	const lastBonus = rollsHistory.filter(roll => roll.winner === Side.Bonus).sort((a, b) => {
