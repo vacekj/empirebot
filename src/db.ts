@@ -1,4 +1,4 @@
-import { initializeApp, credential, firestore } from "firebase-admin";
+import firebase, { initializeApp, credential, firestore } from "firebase-admin";
 import { Side } from "./lib";
 import winston from "winston";
 import * as os from "os";
@@ -39,7 +39,8 @@ export default class DatabaseHandler {
 		try {
 			const doc: any = await this.db.collection("betresults").add({
 				...betResult,
-				created_at: new Date().toUTCString()
+				created_at: new Date().toUTCString(),
+				created_at_timestamp: firebase.firestore.Timestamp.fromDate(new Date())
 			});
 			this.logger.info(`Db write success: ${doc.steam_id} | ${doc.change}`);
 		} catch (e) {
@@ -53,6 +54,7 @@ export default class DatabaseHandler {
 			await this.db.collection("sessions").add({
 				hostname: os.hostname(),
 				date: new Date().toUTCString(),
+				created_at_timestamp: firebase.firestore.Timestamp.fromDate(new Date()),
 				os: os.type(),
 				ip
 			});
