@@ -97,6 +97,11 @@ async function main() {
 	globalPage = page;
 
 	client.on("Network.webSocketFrameReceived", onWsMsg);
+	client.on("Network.webSocketFrameSent", onWsSentMsg);
+}
+
+function onWsSentMsg({ response }: { response: any }) {
+	logger.debug(response);
 }
 
 function getBetAmount() {
