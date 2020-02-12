@@ -98,6 +98,13 @@ async function main() {
 
 	client.on("Network.webSocketFrameReceived", onWsMsg);
 	client.on("Network.webSocketFrameSent", onWsSentMsg);
+	client.on("Network.webSocketCreated", ({ requestId, url }: any) => {
+		logger.debug("Network.webSocketCreated", requestId, url);
+	});
+
+	client.on("Network.webSocketClosed", ({ requestId, timestamp }: any) => {
+		logger.debug("Network.webSocketClosed", requestId, timestamp);
+	});
 }
 
 function onWsSentMsg({ response }: { response: any }) {
