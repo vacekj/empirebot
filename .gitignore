@@ -95,3 +95,4 @@ typings/
 .env.json
 
 userData
+*.zip

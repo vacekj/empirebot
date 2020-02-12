@@ -1,0 +1,16 @@
+src/
+.editorconfig
+.gitignore
+.npmignore
+.prettierrc.json
+.prettierignore
+empirebot-9b58d-10d4c4242196.json
+jest.config.js
+LICENSE
+package.json
+package-lock.json
+README.md
+start.ps1
+test.test.js
+tsconfig.json
+tslint.json
