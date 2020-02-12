@@ -14,8 +14,6 @@ let rollsHistory: Roll[] = [];
 let globalPage: Page;
 let steamId: string;
 
-let DbHandler = new DatabaseHandler();
-
 const rulesFile = fs.readFileSync(getPath(paths.algoPath));
 const rules: [[string, string]] = parseCsv(rulesFile);
 
@@ -45,6 +43,8 @@ function createLogger() {
 }
 
 export const logger = createLogger();
+
+let DbHandler = new DatabaseHandler(logger);
 
 process
 	.on("unhandledRejection", (reason, p) => {
