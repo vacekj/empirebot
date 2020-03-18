@@ -3,6 +3,7 @@ import fs from "fs";
 import parseCsv from "csv-parse/lib/sync";
 import chalk from "chalk";
 import * as winston from "winston";
+import ws, { OpenEvent } from "ws";
 
 import * as elib from "./lib";
 import { Roll, Side } from "./lib";
@@ -96,15 +97,35 @@ async function main() {
 
 	globalPage = page;
 
-	client.on("Network.webSocketFrameReceived", onWsMsg);
-	client.on("Network.webSocketFrameSent", onWsSentMsg);
-	client.on("Network.webSocketCreated", ({ requestId, url }: any) => {
-		logger.debug("Network.webSocketCreated", requestId, url);
+	/*Plan is to:
+	* 1) itnercept wss connection to the roullete
+	* 2) save the headers and request details etc.
+	* 3) connect via our own ws client instead
+	* 4) communicate like normal
+	* */
+
+	client.on("Network.webSocketCreated", ({ url }: any) => {
+		logger.debug("Network.webSocketCreated");
+		const socket = new ws(url);
+		socket.on("open", (e: OpenEvent) => {
+			console.log(e);
+		});
+		socket.on("close", (e) => {
+			console.log(e);
+		});
+		socket.on("error", (e) => {
+			console.log(e);
+		});
+		socket.on("message", (e) => {
+			console.log(e);
+		});
 	});
 
-	client.on("Network.webSocketClosed", ({ requestId, timestamp }: any) => {
-		logger.debug("Network.webSocketClosed", requestId, timestamp);
+	client.on("Network.webSocketClosed", (e: any) => {
+		logger.debug("Network.webSocketClosed", e);
 	});
+	client.on("Network.webSocketFrameReceived", onWsMsg);
+	client.on("Network.webSocketFrameSent", onWsSentMsg);
 }
 
 function onWsSentMsg({ response }: { response: any }) {
